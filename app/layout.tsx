@@ -7,10 +7,8 @@ const geist = Geist({
   subsets: ["latin"],
 });
 
-const URL = "https://tuprimeracasa.vercel.app";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(URL),
+  metadataBase: new URL("https://tuprimeracasa.vercel.app"),
   title: {
     default: "Tu Primera Casa | Comparador de Créditos UVA Argentina 2026",
     template: "%s | Tu Primera Casa",
@@ -32,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: URL,
+    url: "https://tuprimeracasa.vercel.app",
     siteName: "Tu Primera Casa",
     title: "Comparador de Créditos UVA Argentina 2026",
     description:
@@ -58,7 +56,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   alternates: {
-    canonical: URL,
+    canonical: "https://tuprimeracasa.vercel.app",
   },
 };
 

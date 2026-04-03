@@ -184,6 +184,98 @@ export function calcularCredito(
   });
 }
 
+export interface ResultadoElegibilidad {
+  banco: Banco;
+  tnaConSueldo: number;
+  tnaSinSueldo: number;
+  maxPrestamoConSueldo: number;
+  maxPrestamoSinSueldo: number;
+  maxPropiedadConSueldo: number;
+  maxPropiedadSinSueldo: number;
+  calificaConSueldo: boolean;
+  calificaSinSueldo: boolean;
+  ahorroSuficiente: boolean; // el ahorro cubre la entrada mínima
+  cuotaConSueldo: number;
+  cuotaSinSueldo: number;
+}
+
+// Calcula cuánto puede pedir según ingreso: despeja el monto del sistema francés
+function maxMontoDesdeIngreso(ingresoNeto: number, tna: number, plazoAnios: number): number {
+  const cuotaMaxima = ingresoNeto * 0.25;
+  const tem = tna / 100 / 12;
+  const n = plazoAnios * 12;
+  if (tem === 0) return cuotaMaxima * n;
+  return cuotaMaxima / (tem * Math.pow(1 + tem, n) / (Math.pow(1 + tem, n) - 1));
+}
+
+function cuotaDesdeMonto(monto: number, tna: number, plazoAnios: number): number {
+  const tem = tna / 100 / 12;
+  const n = plazoAnios * 12;
+  if (tem === 0) return monto / n;
+  return (monto * tem * Math.pow(1 + tem, n)) / (Math.pow(1 + tem, n) - 1);
+}
+
+export function calcularElegibilidad(
+  ingresoNeto: number,
+  ahorros: number,
+  plazoAnios: number
+): ResultadoElegibilidad[] {
+  return BANCOS.map((banco) => {
+    const plazo = Math.min(plazoAnios, banco.plazoMaxAnios);
+
+    const maxPrestamoConSueldo = maxMontoDesdeIngreso(ingresoNeto, banco.tnaConSueldo, plazo);
+    const maxPrestamoSinSueldo = maxMontoDesdeIngreso(ingresoNeto, banco.tnaSinSueldo, plazo);
+
+    // El ahorro debe cubrir la parte no financiada: (1 - financiacion%) del valor
+    // valor_propiedad = prestamo / financiacion% → entrada = valor - prestamo
+    const maxPropiedadConSueldo = maxPrestamoConSueldo / (banco.financiacionMaxPct / 100);
+    const maxPropiedadSinSueldo = maxPrestamoSinSueldo / (banco.financiacionMaxPct / 100);
+
+    const entradaRequeridaConSueldo = maxPropiedadConSueldo - maxPrestamoConSueldo;
+    const entradaRequeridaSinSueldo = maxPropiedadSinSueldo - maxPrestamoSinSueldo;
+
+    const ahorroSuficienteConSueldo = ahorros >= entradaRequeridaConSueldo;
+    const ahorroSuficienteSinSueldo = ahorros >= entradaRequeridaSinSueldo;
+
+    // Si el ahorro limita: la propiedad máxima es ahorro / (1 - financiacion%)
+    const propiedadMaxPorAhorroConSueldo = ahorros / (1 - banco.financiacionMaxPct / 100);
+    const propiedadMaxPorAhorroSinSueldo = ahorros / (1 - banco.financiacionMaxPct / 100);
+
+    const propFinalConSueldo = ahorroSuficienteConSueldo
+      ? maxPropiedadConSueldo
+      : propiedadMaxPorAhorroConSueldo;
+    const propFinalSinSueldo = ahorroSuficienteSinSueldo
+      ? maxPropiedadSinSueldo
+      : propiedadMaxPorAhorroSinSueldo;
+
+    const prestamoFinalConSueldo = propFinalConSueldo * (banco.financiacionMaxPct / 100);
+    const prestamoFinalSinSueldo = propFinalSinSueldo * (banco.financiacionMaxPct / 100);
+
+    const cuotaConSueldo = cuotaDesdeMonto(prestamoFinalConSueldo, banco.tnaConSueldo, plazo);
+    const cuotaSinSueldo = cuotaDesdeMonto(prestamoFinalSinSueldo, banco.tnaSinSueldo, plazo);
+
+    // Califica si el ingreso cubre al menos una cuota mínima viable ($10M de propiedad)
+    const montoMinimo = 10_000_000;
+    const calificaConSueldo = maxPrestamoConSueldo >= montoMinimo;
+    const calificaSinSueldo = maxPrestamoSinSueldo >= montoMinimo;
+
+    return {
+      banco,
+      tnaConSueldo: banco.tnaConSueldo,
+      tnaSinSueldo: banco.tnaSinSueldo,
+      maxPrestamoConSueldo: prestamoFinalConSueldo,
+      maxPrestamoSinSueldo: prestamoFinalSinSueldo,
+      maxPropiedadConSueldo: propFinalConSueldo,
+      maxPropiedadSinSueldo: propFinalSinSueldo,
+      calificaConSueldo,
+      calificaSinSueldo,
+      ahorroSuficiente: ahorroSuficienteConSueldo || ahorroSuficienteSinSueldo,
+      cuotaConSueldo,
+      cuotaSinSueldo,
+    };
+  });
+}
+
 export function formatPesos(n: number): string {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",

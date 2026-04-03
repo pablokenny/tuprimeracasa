@@ -9,6 +9,7 @@ import {
 } from "@/lib/bancos";
 import { ComparadorGrafico } from "./ComparadorGrafico";
 import { TarjetaBanco } from "./TarjetaBanco";
+import { CalculadoraElegibilidad } from "./CalculadoraElegibilidad";
 
 const MILLONES = 1_000_000;
 
@@ -17,7 +18,7 @@ export function Calculadora() {
   const [montoSolicitado, setMontoSolicitado] = useState(75);
   const [plazoAnios, setPlazoAnios] = useState(20);
   const [conSueldo, setConSueldo] = useState(true);
-  const [vista, setVista] = useState<"calculadora" | "comparador">("calculadora");
+  const [vista, setVista] = useState<"calculadora" | "elegibilidad" | "comparador">("calculadora");
   const [bancoSeleccionado, setBancoSeleccionado] = useState<string | null>(null);
 
   const resultados = useMemo(
@@ -59,7 +60,7 @@ export function Calculadora() {
           <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => setVista("calculadora")}
-              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 vista === "calculadora"
                   ? "bg-white text-blue-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -68,8 +69,18 @@ export function Calculadora() {
               Calculadora
             </button>
             <button
+              onClick={() => setVista("elegibilidad")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                vista === "elegibilidad"
+                  ? "bg-white text-blue-700 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              ¿Cuánto puedo pedir?
+            </button>
+            <button
               onClick={() => setVista("comparador")}
-              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 vista === "comparador"
                   ? "bg-white text-blue-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-700"
@@ -83,18 +94,30 @@ export function Calculadora() {
 
       {/* Hero */}
       <div className="max-w-6xl mx-auto px-6 pt-10 pb-6">
-        <h2 className="text-3xl font-bold text-slate-800 mb-1">
-          Encontrá el mejor crédito hipotecario UVA
-        </h2>
-        <p className="text-slate-500 text-base">
-          Compará todos los bancos en un solo lugar. Ingresá tus datos y ves cuánto pagás en cada opción.
-        </p>
+        {vista === "calculadora" && (
+          <>
+            <h2 className="text-3xl font-bold text-slate-800 mb-1">Encontrá el mejor crédito hipotecario UVA</h2>
+            <p className="text-slate-500 text-base">Ingresá el valor de la propiedad y ves cuánto pagás en cada banco.</p>
+          </>
+        )}
+        {vista === "elegibilidad" && (
+          <>
+            <h2 className="text-3xl font-bold text-slate-800 mb-1">¿A cuánto crédito podés acceder?</h2>
+            <p className="text-slate-500 text-base">Ingresá tu ingreso y ahorros, y te mostramos en qué bancos calificás y hasta cuánto podés comprar.</p>
+          </>
+        )}
+        {vista === "comparador" && (
+          <>
+            <h2 className="text-3xl font-bold text-slate-800 mb-1">Comparación visual de bancos</h2>
+            <p className="text-slate-500 text-base">Gráficos comparativos de cuotas, tasas e ingresos requeridos.</p>
+          </>
+        )}
       </div>
 
       <main className="max-w-6xl mx-auto px-6 pb-12">
 
-        {/* Panel de inputs */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-8 shadow-md">
+        {/* Panel de inputs — solo en calculadora y comparador */}
+        {vista !== "elegibilidad" && <div className="bg-white rounded-2xl border border-slate-100 p-6 mb-8 shadow-md">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Tu situación</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
@@ -192,7 +215,7 @@ export function Calculadora() {
               <p className="text-xs text-slate-400 mt-2">Impacta en la tasa de cada banco</p>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Vista calculadora */}
         {vista === "calculadora" && (
@@ -223,6 +246,9 @@ export function Calculadora() {
             </div>
           </div>
         )}
+
+        {/* Vista elegibilidad */}
+        {vista === "elegibilidad" && <CalculadoraElegibilidad />}
 
         {/* Vista comparador */}
         {vista === "comparador" && (
